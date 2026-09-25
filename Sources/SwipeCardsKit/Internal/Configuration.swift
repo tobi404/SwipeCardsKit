@@ -10,11 +10,13 @@ import SwiftUI
 @MainActor
 final class Configuration<Item: Identifiable> {
     var triggerThreshold: CGFloat = 150
+    /// When set, the swipe commits after this fraction of the deck's measured width instead of
+    /// the fixed `triggerThreshold`, so the gesture feels the same at every deck size.
+    var triggerThresholdFraction: CGFloat?
     var minimumDistance: CGFloat = 20
     var animateOnYAxes: Bool = false
     var onSwipeEnd: ((Item, CardSwipeDirection) -> Void)?
     var onThresholdPassed: (() -> Void)?
     var onNoMoreCardsLeft: (() -> Void)?
     let visibleCount = 4
-    let screenWidth = { UIScreen.current?.bounds.width ?? 400 }()
 }

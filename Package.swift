@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "SwipeCardsKit",
-    platforms: [.iOS(.v15)],
+    platforms: [.macOS(.v15), .iOS(.v15)],
     products: [
         .library(
             name: "SwipeCardsKit",

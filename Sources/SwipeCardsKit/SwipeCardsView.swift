@@ -15,14 +15,29 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
     @State private var lastDirection: CardSwipeDirection = .idle
     @State private var offset: CGPoint = .zero
     @State private var thresholdPassed = false
+    /// The deck's frame in window coordinates, measured on every layout, so swipe distances follow
+    /// the deck when its window changes size (a foldable opening, a Split View resize).
+    @State private var deckFrame: CGRect = .zero
+    @State private var windowProbe = WindowProbe()
     
     @Binding private var items: [Item]
     @Binding private var selectedItem: Item?
     @Binding private var popTrigger: CardSwipeDirection?
     private let content: (Item, _ progress: CGFloat, _ direction: CardSwipeDirection) -> Content
     
-    private var screenWidth: CGFloat {
-        configuration.screenWidth
+    private var triggerThreshold: CGFloat {
+        guard let fraction = configuration.triggerThresholdFraction, deckFrame.width > 0 else {
+            return configuration.triggerThreshold
+        }
+        return deckFrame.width * fraction
+    }
+
+    /// Far enough for a popped card to leave the window from wherever the deck sits in it:
+    /// past the leading edge on a left swipe and past the trailing edge on a right swipe.
+    private var flyOffDistance: CGFloat {
+        guard deckFrame.width > 0 else { return 1000 }
+        let windowWidth = windowProbe.windowWidth ?? 0
+        return max(2 * deckFrame.maxX, windowWidth - deckFrame.minX + deckFrame.width)
     }
     
     public init(
@@ -43,7 +58,7 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
                 onDragChanged(value)
             }
             .onEnded { value in
-                if abs(value.translation.width) < configuration.triggerThreshold {
+                if abs(value.translation.width) < triggerThreshold {
                     withAnimation(.bouncy) {
                         offset = .zero
                     }
@@ -56,21 +71,29 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
     public var body: some View {
         ZStack {
             ForEach(Array(items.prefix(configuration.visibleCount).enumerated()), id: \.element.id) { index, item in
-                let progress = index == 0 ? min(abs(offset.x) / configuration.triggerThreshold, 1) : 0
+                let progress = index == 0 ? min(abs(offset.x) / triggerThreshold, 1) : 0
                 
                 content(item, progress, lastDirection)
                     .modifier(
                         CardSwipeEffect(
                             index: index,
                             offset: offset,
-                            triggerThreshold: configuration.triggerThreshold
+                            triggerThreshold: triggerThreshold
                         )
                     )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            GeometryReader { proxy in
+                let frame = proxy.frame(in: .global)
+                WindowProbeView(probe: windowProbe)
+                    .onAppear { deckFrame = frame }
+                    .onChange(of: frame) { deckFrame = $0 }
+            }
+        }
         .overlay { poppedCard }
-        .gesture(swipeGesture)
+        .simultaneousGesture(swipeGesture)
         .onAppear {
             selectedItem = items.first
         }
@@ -85,12 +108,12 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
     @ViewBuilder
     var poppedCard: some View {
         if let poppedItem {
-            content(poppedItem, min(abs(poppedOffset.x) / configuration.triggerThreshold, 1), poppedDirection)
+            content(poppedItem, min(abs(poppedOffset.x) / triggerThreshold, 1), poppedDirection)
                 .modifier(
                     CardSwipeEffect(
                         index: 0,
                         offset: poppedOffset,
-                        triggerThreshold: configuration.triggerThreshold
+                        triggerThreshold: triggerThreshold
                     )
                 )
                 .id(poppedItem.id)
@@ -114,7 +137,7 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
             lastDirection = newDirection
         }
         
-        let thresholdReached = abs(offsetX) >= configuration.triggerThreshold
+        let thresholdReached = abs(offsetX) >= triggerThreshold
         if thresholdReached != thresholdPassed {
             thresholdPassed = thresholdReached
             if thresholdReached {
@@ -138,7 +161,7 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
         
         if #available(iOS 17.0, *) {
             withAnimation(.spring(duration: 0.5)) {
-                poppedOffset.x += (screenWidth * multiplier)
+                poppedOffset.x += (flyOffDistance * multiplier)
             } completion: {
                 self.poppedItem = nil
                 self.poppedOffset = .zero
@@ -149,7 +172,7 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
             }
         } else {
             withAnimation(.spring(duration: 0.5)) {
-                poppedOffset.x += (screenWidth * multiplier)
+                poppedOffset.x += (flyOffDistance * multiplier)
             }
             
             Task {
@@ -184,8 +207,28 @@ public extension CardSwipeView {
         animateOnYAxes: Bool
     ) -> CardSwipeView {
         configuration.triggerThreshold = threshold
+        configuration.triggerThresholdFraction = nil
         configuration.minimumDistance = minimumDistance
         configuration.animateOnYAxes = animateOnYAxes
+        return self
+    }
+
+    /// Commits a swipe after `thresholdFraction` of the deck's width (for example 0.42), so the
+    /// gesture scales with the deck instead of using a fixed distance.
+    func configure(
+        thresholdFraction: CGFloat,
+        minimumDistance: CGFloat,
+        animateOnYAxes: Bool
+    ) -> CardSwipeView {
+        configuration.triggerThresholdFraction = thresholdFraction
+        configuration.minimumDistance = minimumDistance
+        configuration.animateOnYAxes = animateOnYAxes
+        return self
+    }
+
+    /// Commits a swipe after `thresholdFraction` of the deck's width, keeping the other defaults.
+    func configure(thresholdFraction: CGFloat) -> CardSwipeView {
+        configuration.triggerThresholdFraction = thresholdFraction
         return self
     }
     
