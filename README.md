@@ -1,6 +1,6 @@
 # SwipeCardsKit
 
-A lightweight, customizable SwiftUI library for creating Tinder-like swipeable card interfaces in your iOS applications.
+A lightweight, customizable SwiftUI library for creating Tinder-like swipeable card interfaces in your iOS and macOS applications.
 
 https://github.com/user-attachments/assets/d7611af6-9351-439d-ae98-84f9e43b8e5b
 
@@ -10,7 +10,7 @@ https://github.com/user-attachments/assets/5ea8b372-04bd-43bf-9758-e85154ba5265
 
 - 🔄 Smooth swipe animations
 - 🎨 Fully customizable card appearance
-- 📱 iOS 15.0+ support
+- 📱 iOS 15.0+ and macOS 15.0+ support
 - 🔌 Simple integration with SwiftUI
 - 📊 Swipe direction tracking (left/right)
 - 🔄 Card stack management with visual depth effect
@@ -20,6 +20,7 @@ https://github.com/user-attachments/assets/5ea8b372-04bd-43bf-9758-e85154ba5265
 ## Requirements
 
 - iOS 15.0+
+- macOS 15.0+
 - Swift 6.0+
 - Xcode 15.0+
 
@@ -161,6 +162,18 @@ CardSwipeView(items: $cards, selectedItem: $selectedCard) { card, progress, dire
 .configure(threshold: 200, minimumDistance: 10, animateOnYAxes: Bool)
 // Default threshold is 150, minimum distance is 20, animateOnYAxes is false (disabled)
 ```
+
+To make the threshold scale with the deck, give it as a fraction of the deck's measured width. The deck re-measures itself on every layout, so the threshold follows window size changes:
+
+```swift
+CardSwipeView(items: $cards, selectedItem: $selectedCard) { card, progress, direction in
+    // Card content
+}
+.configure(thresholdFraction: 0.4)
+// Or: .configure(thresholdFraction: 0.4, minimumDistance: 10, animateOnYAxes: false)
+```
+
+Calling `configure(threshold:minimumDistance:animateOnYAxes:)` switches back to a fixed threshold.
 
 ### Swipe Callbacks
 
