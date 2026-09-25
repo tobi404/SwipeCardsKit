@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/5ea8b372-04bd-43bf-9758-e85154ba5265
 - iOS 15.0+
 - macOS 15.0+
 - Swift 6.0+
-- Xcode 15.0+
+- Xcode 16.0+
 
 ## Installation
 
