@@ -40,8 +40,12 @@ struct WindowProbeView: UIViewRepresentable {
 struct WindowProbeView: NSViewRepresentable {
     let probe: WindowProbe
 
+    final class PassthroughView: NSView {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+
     func makeNSView(context: Context) -> NSView {
-        let view = NSView()
+        let view = PassthroughView()
         probe.view = view
         return view
     }
