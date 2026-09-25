@@ -16,5 +16,9 @@ final class Configuration<Item: Identifiable> {
     var onThresholdPassed: (() -> Void)?
     var onNoMoreCardsLeft: (() -> Void)?
     let visibleCount = 4
+    #if os(iOS)
     let screenWidth = { UIScreen.current?.bounds.width ?? 400 }()
+    #elseif os(macOS)
+    let screenWidth = { NSScreen.current?.frame.width ?? 400 }()
+    #endif
 }

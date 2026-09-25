@@ -70,7 +70,7 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay { poppedCard }
-        .gesture(swipeGesture)
+        .simultaneousGesture(swipeGesture)
         .onAppear {
             selectedItem = items.first
         }

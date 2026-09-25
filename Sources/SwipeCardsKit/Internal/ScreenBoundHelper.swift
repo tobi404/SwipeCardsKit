@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+#if os(iOS)
 extension UIWindow {
     static var current: UIWindow? {
         for scene in UIApplication.shared.connectedScenes {
@@ -24,3 +25,17 @@ extension UIScreen {
         UIWindow.current?.screen
     }
 }
+#elseif os(macOS)
+extension NSWindow {
+    static var current: NSWindow? {
+        NSApplication.shared.keyWindow
+    }
+}
+
+extension NSScreen {
+    @MainActor
+    static var current: NSScreen? {
+        NSWindow.current?.screen ?? NSScreen.main
+    }
+}
+#endif
