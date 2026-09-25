@@ -18,6 +18,7 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
     /// The deck's frame in window coordinates, measured on every layout, so swipe distances follow
     /// the deck when its window changes size (a foldable opening, a Split View resize).
     @State private var deckFrame: CGRect = .zero
+    @State private var windowProbe = WindowProbe()
     
     @Binding private var items: [Item]
     @Binding private var selectedItem: Item?
@@ -31,10 +32,12 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
         return deckFrame.width * fraction
     }
 
-    /// Far enough for a popped card to leave the window from wherever the deck sits in it.
+    /// Far enough for a popped card to leave the window from wherever the deck sits in it:
+    /// past the leading edge on a left swipe and past the trailing edge on a right swipe.
     private var flyOffDistance: CGFloat {
         guard deckFrame.width > 0 else { return 1000 }
-        return 2 * deckFrame.maxX
+        let windowWidth = windowProbe.windowWidth ?? 0
+        return max(2 * deckFrame.maxX, windowWidth - deckFrame.minX + deckFrame.width)
     }
     
     public init(
@@ -84,7 +87,7 @@ public struct CardSwipeView<Item: Identifiable & Hashable, Content: View>: View 
         .background {
             GeometryReader { proxy in
                 let frame = proxy.frame(in: .global)
-                Color.clear
+                WindowProbeView(probe: windowProbe)
                     .onAppear { deckFrame = frame }
                     .onChange(of: frame) { deckFrame = $0 }
             }
